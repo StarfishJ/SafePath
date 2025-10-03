@@ -5,8 +5,11 @@ SafePath is a data-driven navigation platform designed for urban pedestrians and
 
 ## Tech Stacks
 Front End: Next.js(javascript)   - UI/SSR/SPA
+
 Backend: Spring Boot(java)       - REST APIs, Spring Security (JWT/OAuth2), DB access
+
 Database: PostgreSQL + PostGIS   - data storage & spatial queries
+
 ML: Pandas, PyTorch(python)      - build and serve ML models (ETL, preprocessing, training, inference)
 
 ### Team Members
@@ -86,3 +89,4 @@ SafePath will evolve into a comprehensive urban safety platform:
 - Import into PostGIS using ogr2ogr or shp2pgsql
 
 - Build routing topology (nodes, edges) to support shortest-path algorithms
+
