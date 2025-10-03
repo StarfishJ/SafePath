@@ -1,4 +1,4 @@
-﻿# SafePath 🚶‍♂️
+﻿# SafePath 🚶‍♂️  ongoing project
 
 ## Project Overview
 SafePath is a data-driven navigation platform designed for urban pedestrians and city visitors. We integrate crime statistics, lighting conditions, and community-reported incidents to provide real-time safety alerts and safer walking route planning.
@@ -89,4 +89,5 @@ SafePath will evolve into a comprehensive urban safety platform:
 - Import into PostGIS using ogr2ogr or shp2pgsql
 
 - Build routing topology (nodes, edges) to support shortest-path algorithms
+
 
