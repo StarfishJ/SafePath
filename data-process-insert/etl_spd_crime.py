@@ -1,7 +1,9 @@
-import pandas as pd
-import mysql.connector
 from datetime import datetime
-import time
+import mysql.connector
+import pandas as pd
+
+
+# import time
 
 # ============================
 # 1️⃣ MySQL connection configuration
