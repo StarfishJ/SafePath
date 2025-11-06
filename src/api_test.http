@@ -1,0 +1,220 @@
+
+### SafePath API Testing
+
+### Variables
+@baseUrl = http://localhost:8081
+@contentType = application/json
+
+###
+### ============= USER MANAGEMENT =============
+###
+
+### 1. Create User
+POST {{baseUrl}}/api/users
+Content-Type: {{contentType}}
+
+{
+  "email": "newuser@safepath.com",
+  "password": "SecurePass123"
+}
+
+###
+
+### 2. Get User by ID
+GET {{baseUrl}}/api/users/1
+
+###
+
+### 3. Get User by ID (Admin)
+GET {{baseUrl}}/api/users/2
+
+###
+
+### ============= CRIME REPORTS =============
+###
+
+### 4. Create Crime Report
+POST {{baseUrl}}/api/crime-reports
+Content-Type: {{contentType}}
+
+{
+  "reportNumber": "CR-2025-1001",
+  "reportDatetime": "2025-11-05T10:30:00",
+  "precinct": "North Precinct",
+  "sector": "N01",
+  "beat": "B01",
+  "mcppNeighborhood": "Fremont",
+  "blurredAddress": "456 Smith Ave",
+  "blurredLatitude": 47.6557,
+  "blurredLongitude": -122.3477
+}
+
+###
+
+### 5. Get All Crime Reports
+GET {{baseUrl}}/api/crime-reports
+
+<> 2025-11-05T211911.200.json
+<> 2025-11-05T211907.200.json
+<> 2025-11-05T211841.200.json
+
+###
+
+### 6. Get Crime Report by ID (Existing)
+GET {{baseUrl}}/api/crime-reports/TEST-1
+
+###
+
+### 7. Get Crime Report by ID (New)
+GET {{baseUrl}}/api/crime-reports/CR-2025-1001
+
+###
+
+### 8. Delete Crime Report
+DELETE {{baseUrl}}/api/crime-reports/CR-2025-1001
+
+###
+
+### ============= USER ALERTS =============
+###
+
+### 9. Create User Alert for User 1
+POST {{baseUrl}}/api/user-alerts
+Content-Type: {{contentType}}
+
+{
+  "userId": 1,
+  "radiusM": 2000,
+  "centerLat": 47.6062,
+  "centerLon": -122.3321,
+  "crimeTypeFilter": "ROBBERY",
+  "activeFlag": true
+}
+
+
+###
+
+### 10. Get All Alerts for User 1
+GET {{baseUrl}}/api/user-alerts/user/1
+
+
+###
+
+### 11. Get All Alerts for User 2
+GET {{baseUrl}}/api/user-alerts/user/2
+
+###
+
+### 12. Get All Alerts for User 3
+GET {{baseUrl}}/api/user-alerts/user/3
+
+
+### 13. Create User with Duplicate Email (Should Fail)
+POST {{baseUrl}}/api/users
+Content-Type: {{contentType}}
+
+{
+  "email": "admin@safepath.com",
+  "password": "password123"
+}
+
+###
+
+### 14. Create User with Invalid Email (Should Fail)
+POST {{baseUrl}}/api/users
+Content-Type: {{contentType}}
+
+{
+  "email": "invalid-email",
+  "password": "password123"
+}
+
+###
+
+### 15. Create User with Empty Password (Should Fail)
+POST {{baseUrl}}/api/users
+Content-Type: {{contentType}}
+
+{
+  "email": "test@example.com",
+  "password": ""
+}
+
+###
+
+### 16. Get Non-Existent User (Should Return 404)
+GET {{baseUrl}}/api/users/9999
+
+###
+
+### 17. Get Non-Existent Crime Report (Should Return 404)
+GET {{baseUrl}}/api/crime-reports/NON-EXISTENT
+
+###
+
+### 18. Create Alert for Non-Existent User (Should Still Create)
+POST {{baseUrl}}/api/user-alerts
+Content-Type: {{contentType}}
+
+{
+  "userId": 9999,
+  "radiusM": 500,
+  "centerLat": 47.6,
+  "centerLon": -122.33,
+  "crimeTypeFilter": "THEFT"
+}
+
+###
+
+### ============= BATCH TESTING - CREATE MULTIPLE RECORDS =============
+###
+
+### 19. Create Crime Report 1
+POST {{baseUrl}}/api/crime-reports
+Content-Type: {{contentType}}
+
+{
+  "reportNumber": "BATCH-001",
+  "reportDatetime": "2025-11-05T09:00:00",
+  "precinct": "South Precinct",
+  "sector": "S01",
+  "beat": "B01",
+  "mcppNeighborhood": "Beacon Hill",
+  "blurredAddress": "789 Oak Street",
+  "blurredLatitude": 47.5800,
+  "blurredLongitude": -122.2800
+}
+
+###
+
+### 20. Create Crime Report 2
+POST {{baseUrl}}/api/crime-reports
+Content-Type: {{contentType}}
+
+{
+  "reportNumber": "BATCH-002",
+  "reportDatetime": "2025-11-05T11:00:00",
+  "precinct": "East Precinct",
+  "sector": "E01",
+  "beat": "B02",
+  "mcppNeighborhood": "Ballard",
+  "blurredAddress": "321 Maple Avenue",
+  "blurredLatitude": 47.6700,
+  "blurredLongitude": -122.3800
+}
+
+###
+
+### 21. Verify All Crime Reports After Batch Creation
+GET {{baseUrl}}/api/crime-reports
+
+###
+
+### ============= H2 CONSOLE =============
+###
+### Note: H2 Console 可在以下地址访问
+### URL: http://localhost:8081/h2-console
+### JDBC URL: jdbc:h2:mem:safepath
+### User: sa
+### Password:
+###

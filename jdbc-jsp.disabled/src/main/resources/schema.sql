@@ -1,0 +1,20 @@
+-- Simple schema for JDBC/JSP SafePath example
+CREATE TABLE IF NOT EXISTS app_user (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  username VARCHAR(255) NOT NULL,
+  email VARCHAR(255)
+);
+
+CREATE TABLE IF NOT EXISTS crime_report (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  description VARCHAR(1000),
+  location VARCHAR(500),
+  reported_at TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS user_alert (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  user_id BIGINT,
+  message VARCHAR(1000),
+  CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES app_user(id) ON DELETE SET NULL
+);
