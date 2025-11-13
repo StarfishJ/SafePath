@@ -1,15 +1,20 @@
+import os
 from datetime import datetime
 import mysql.connector
 import pandas as pd
+from dotenv import load_dotenv
 
 
-# import time
+load_dotenv()
 
 # ============================
 # 1️⃣ MySQL connection configuration
 # ============================
 conn = mysql.connector.connect(
-    host="localhost", user="root", password="zcc663280", database="safepath"
+    host=os.getenv("DB_HOST", "localhost"),
+    user=os.getenv("DB_USER", "root"),
+    password=os.getenv("DB_PASSWORD", ""),
+    database=os.getenv("DB_NAME", "safepath"),
 )
 cursor = conn.cursor()
 
@@ -20,7 +25,8 @@ source_name = "SPD Crime Data"
 source_url = "https://data.seattle.gov/Public-Safety/SPD-Crime-Data-2008-Present"
 refresh_interval = 1440
 
-cursor.execute("SELECT source_id FROM sources WHERE source_name=%s", (source_name,))
+cursor.execute(
+    "SELECT source_id FROM sources WHERE source_name=%s", (source_name,))
 row = cursor.fetchone()
 if row:
     source_id = row[0]
@@ -141,7 +147,7 @@ crime_data = [tuple(row) for row in crime_reports.to_numpy()]
 
 batch_size = 1000
 for i in range(0, len(crime_data), batch_size):
-    batch = crime_data[i : i + batch_size]
+    batch = crime_data[i: i + batch_size]
     cursor.executemany(
         """
         INSERT IGNORE INTO crime_reports
@@ -169,12 +175,13 @@ report_offenses = df[
     ["report_number", "offense_code", "offense_date", "etl_id"]
 ].dropna(subset=["report_number"])
 
-report_offenses = report_offenses[report_offenses["report_number"].isin(valid_reports)]
+report_offenses = report_offenses[report_offenses["report_number"].isin(
+    valid_reports)]
 
 report_data = [tuple(row) for row in report_offenses.to_numpy()]
 
 for i in range(0, len(report_data), batch_size):
-    batch = report_data[i : i + batch_size]
+    batch = report_data[i: i + batch_size]
     cursor.executemany(
         """
         INSERT INTO report_offenses

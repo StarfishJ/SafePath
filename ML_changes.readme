@@ -1,0 +1,185 @@
+ML Safety Recommendations – Plan C1 Implementation
+===============================================
+
+Snapshot
+--------
+- **Goal**: Assign each street segment in Seattle a machine-learned safety label (`Low`, `Medium`, `High`) using KMeans clustering on historical crime data.
+- **Output**: Table `street_segment_risk` with a numeric score, categorical label, and explanation fields that backend and frontend can consume.
+
+Plain-Language Flow
+-------------------
+1. Pull historical crime incidents and street segment info from the MySQL database (same source as existing ETL scripts).
+2. Count how many incidents touched each street, note what fraction happened at night, and smooth those numbers by street length.
+3. Standardize those statistics and run a KMeans clustering model (e.g., three clusters). Treat the cluster with the highest incident rate as “High risk,” the lowest as “Low risk,” and the middle as “Medium risk.”
+4. Save the results into a new database table so other services can look up the risk score for any street.
+5. Expose a REST API endpoint that returns the risk label + score + short reasons for whichever streets the frontend or routing service requests.
+
+Data Flow Diagram
+-----------------
+```
+MySQL (crime_reports, report_offenses, street_segments)
+          │
+          ▼
+  Python ETL job (`segment_risk_clustering.py`)
+          │   ├─ feature engineering
+          │   ├─ KMeans clustering
+          │   └─ policy mapping → Low/Medium/High
+          ▼
+MySQL table `street_segment_risk`
+          │
+          ▼
+ Spring Boot (new repository/service/controller)
+          │
+          ▼
+   REST API `/api/safety/segments`
+          │
+          ▼
+ Frontend map + routing service
+```
+
+Implementation Blueprint (What, Where, Why)
+-------------------------------------------
+
+### 1. Data Science Script (Python)
+- **Folder / file**: `data-process-insert/segment_risk_clustering.py` (new file)
+- **What**:
+  - Use `pandas`, `numpy`, `scikit-learn` (`KMeans`), and `mysql.connector`.
+  - Functions to fetch raw data, engineer features, fit clustering model, compute cluster statistics, and write results back.
+  - Command-line entry point (`if __name__ == "__main__": main()`).
+- **Why**: Automates daily/weekly risk computation, keeps logic co-located with existing ETL scripts.
+
+### 2. Python Requirements
+- **Folder / file**: `requirements.txt`
+- **What**: Append `scikit-learn==1.3.2` (or compatible) and ensure any supporting libraries required by clustering are present.
+- **Why**: Allows the feature job to run in the same environment as other ETL scripts.
+
+### 3. Database Schema
+- **Folder / file**:
+  - `database-manipulation/create_table.sql`
+  - `safepath-jdbc/database-manipulation/create_table.sql`
+  - `src/main/resources/data.sql` (H2 seed)
+- **What**:
+  - Add new table creation script:
+    ```sql
+    CREATE TABLE street_segment_risk (
+        unitid VARCHAR(50) PRIMARY KEY,
+        cluster_id INT NOT NULL,
+        risk_label VARCHAR(10) NOT NULL,
+        risk_score DOUBLE NOT NULL,
+        incident_density DOUBLE,
+        night_fraction DOUBLE,
+        last_90d_incidents INT,
+        model_version VARCHAR(20),
+        override_reason VARCHAR(255),
+        updated_at DATETIME NOT NULL,
+        FOREIGN KEY (unitid) REFERENCES street_segments(unitid)
+            ON UPDATE CASCADE ON DELETE CASCADE
+    );
+    ```
+  - Seed H2 with a handful of rows so local dev has data.
+- **Why**: Persists ML outputs in a normalized, queryable form and keeps production + H2 schemas in sync.
+
+### 4. Java Persistence Layer
+- **Folder / files**:
+  - `src/main/java/com/safepath/model/StreetSegmentRisk.java` (new entity)
+  - `src/main/java/com/safepath/repository/StreetSegmentRiskRepository.java` (new repository interface)
+- **What**:
+  - JPA entity mapped to `street_segment_risk` with fields matching columns above.
+  - Repository extending `JpaRepository<StreetSegmentRisk, String>` plus custom finder (`List<StreetSegmentRisk> findByGisMidXBetweenAndGisMidYBetween(...)` or `@Query` join on `street_segments` for bbox queries).
+- **Why**: Enables Spring services to fetch cached risk data quickly.
+
+### 5. Service Layer
+- **Folder / file**: `src/main/java/com/safepath/service/SafetyRecommendationService.java` (new interface) and `src/main/java/com/safepath/service/impl/SafetyRecommendationServiceImpl.java` (new class)
+- **What**:
+  - Methods:
+    - `StreetSegmentRiskDto getSegmentRisk(String unitid)`
+    - `List<StreetSegmentRiskDto> getSegmentRisksByBoundingBox(double west, double south, double east, double north)`
+  - Implementation uses repository joins and converts entity → DTO.
+- **Why**: Centralizes business logic and keeps controller thin.
+
+### 6. DTOs
+- **Folder / files**:
+  - `src/main/java/com/safepath/dto/StreetSegmentRiskDto.java` (new)
+  - Update existing mapper/helper or create new mapper in service.
+- **What**: Fields for `unitid`, `riskLabel`, `riskScore`, `incidentDensity`, `nightFraction`, `updatedAt`, `overrideReason`.
+- **Why**: Ensures API responses stay decoupled from persistence model.
+
+### 7. Controller / API
+- **Folder / file**: `src/main/java/com/safepath/controller/SafetyRecommendationController.java` (new)
+- **What**:
+  - `GET /api/safety/segments/{unitid}` → returns single DTO.
+  - `GET /api/safety/segments?west=…&south=…&east=…&north=…` → returns list for map viewport.
+  - Optional: `GET /api/safety/segments/top?label=HIGH&limit=50`.
+- **Why**: Gives frontend and routing modules a consistent interface to consume ML results.
+
+### 8. App Configuration
+- **Folder / file**: `src/main/resources/application.properties`
+- **What**: Ensure JPA picks up new entity; if using H2 dev profile, confirm `data.sql` loads new table before inserts.
+- **Why**: Keeps local dev runnable after schema changes.
+
+### 9. Tests
+- **Folder / files**:
+  - `src/test/java/com/safepath/integration/SafetyRecommendationIntegrationTest.java` (new)
+  - Optionally unit tests for service
+- **What**: Verify endpoints return seeded data and bounding-box filtering works.
+- **Why**: Prevent regressions and prove feature works end-to-end.
+
+### 10. Documentation
+- **Folder / file**: `README.md`
+- **What**: Add a subsection “Safety Recommendation ML Pipeline” summarizing how to run the clustering job and where to find results (`python data-process-insert/segment_risk_clustering.py`).
+- **Why**: Onboard teammates quickly and clarify operational procedures.
+
+Execution Plan
+--------------
+1. Add dependencies (requirements + optional virtualenv instructions).  
+2. Implement clustering script and test locally against sample data.  
+3. Apply schema changes to MySQL and refresh H2 seeds.  
+4. Generate initial risk table by running the script; validate cluster mapping.  
+5. Create Java entity, repository, service, controller, DTO; expose REST endpoints.  
+6. Update tests and docs; ensure application starts with seeded data.  
+7. Hand off API contract to frontend and routing sub-teams.
+
+Integration Checklist
+---------------------
+- **Run & refresh scores**  
+  1. Load raw data (crime + streets) via ETL scripts.  
+  2. Execute `python data-process-insert/segment_risk_clustering.py` to populate `street_segment_risk`.  
+  3. Confirm rows with `SELECT risk_label, COUNT(*) FROM street_segment_risk GROUP BY risk_label;`.
+
+- **Backend consumers**  
+  - Routing or alert services can join `street_segment_risk` on `unitid` to apply penalties (`cost *= 1 + risk_score`).  
+  - For batch exports, query the table directly or add new Spring endpoints as needed.  
+  - Field meanings: `risk_score` ∈ [0,1], `cluster_id` is the KMeans bucket, `override_reason` is a human-readable summary.
+
+- **REST API (already live)**  
+  - `GET /api/safety/segments/{unitid}` → single segment snapshot.  
+  - `GET /api/safety/segments?west={lon}&south={lat}&east={lon}&north={lat}` → all segments in a map viewport.  
+  - JSON response contains:  
+    ```json
+    {
+      "unitid": "SEG001",
+      "streetName": "1ST AVE",
+      "riskLabel": "HIGH",
+      "riskScore": 0.85,
+      "clusterId": 2,
+      "incidentDensity": 0.18,
+      "nightFraction": 0.52,
+      "last90dIncidents": 18,
+      "modelVersion": "kmeans_c1_v1",
+      "overrideReason": "18 incidents in 90d, night 52%, trend x1.40",
+      "updatedAt": "2025-11-12T20:33:35.74918",
+      "latitude": 47.609,
+      "longitude": -122.3406
+    }
+    ```
+
+- **Frontend hooks**  
+  - Use the viewport endpoint to color map polylines; `riskLabel` → palette, `overrideReason` → tooltip.  
+  - Show a segment details panel by calling the single-segment endpoint when a user clicks a street.  
+  - Cache `modelVersion`/`updatedAt` to display “last refreshed” info.
+
+- **Monitoring / re-run cadence**  
+  - Schedule the clustering script (cron/GitHub Actions) nightly after crime data ingestion.  
+  - If data quality shifts (e.g., time zone fix), retrain manually and verify distribution counts before releasing.
+
+

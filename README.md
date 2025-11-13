@@ -12,6 +12,11 @@ Database: PostgreSQL + PostGIS   - data storage & spatial queries
 
 ML: Pandas, PyTorch(python)      - build and serve ML models (ETL, preprocessing, training, inference)
 
+### Environment Configuration
+- Duplicate `env.example` → `.env` and fill in your local MySQL credentials.
+- The Python ETL and clustering jobs automatically read `.env` via `python-dotenv`.
+- `.env` is ignored by git, so teammates can keep their own passwords private.
+
 ### Team Members
 - Minglu Sun
 - Hanhan Guo
@@ -46,6 +51,15 @@ Traditional map applications have the following limitations:
    - ML models trained on historical data
    - Suggest safer routes
    - Identify areas to avoid
+
+### Safety Recommendation ML Pipeline
+- `data-process-insert/segment_risk_clustering.py` clusters street segments each night (defaults: 90-day lookback, 3 clusters).  
+  Run locally with `python data-process-insert/segment_risk_clustering.py` once MySQL is populated.
+- Results persist to `street_segment_risk` (risk label, normalized score, feature summary, model version). Schema defined in `database-manipulation/create_table.sql`.
+- Spring Boot exposes the data via:
+  - `GET /api/safety/segments/{unitid}` – single segment risk snapshot.
+  - `GET /api/safety/segments?west=...&south=...&east=...&north=...` – viewport query for maps and routing.
+- Sample data for local H2 profile is seeded in `src/main/resources/data.sql`; integration tests live in `src/test/java/com/safepath/integration/SafetyRecommendationIntegrationTest.java`.
 
 ### Future Development Plans
 SafePath will evolve into a comprehensive urban safety platform:

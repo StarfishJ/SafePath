@@ -1,13 +1,20 @@
+import os
 import pandas as pd
 import mysql.connector
 import time
+from dotenv import load_dotenv
+
+load_dotenv()
 
 start = time.time()
 print("Loading Seattle streets data...")
 
 # 1️⃣ Connecting to MySQL
 conn = mysql.connector.connect(
-    host="localhost", user="root", password="zcc663280", database="safepath"
+    host=os.getenv("DB_HOST", "localhost"),
+    user=os.getenv("DB_USER", "root"),
+    password=os.getenv("DB_PASSWORD", ""),
+    database=os.getenv("DB_NAME", "safepath"),
 )
 cursor = conn.cursor()
 
@@ -54,7 +61,7 @@ records = [
     for row in intersections.itertuples(index=False, name=None)
 ]
 for i in range(0, len(records), batch_size):
-    batch = records[i : i + batch_size]
+    batch = records[i: i + batch_size]
     cursor.executemany(
         """
         INSERT IGNORE INTO intersections (intkey, name, direction, gis_x, gis_y)
@@ -97,7 +104,7 @@ segment_records = [
 print(f"Ready to insert {len(segment_records)} street segments...")
 
 for i in range(0, len(segment_records), batch_size):
-    batch = segment_records[i : i + batch_size]
+    batch = segment_records[i: i + batch_size]
     cursor.executemany(
         """
         INSERT IGNORE INTO street_segments (
@@ -110,7 +117,8 @@ for i in range(0, len(segment_records), batch_size):
     )
     conn.commit()
     if i % 10000 == 0:
-        print(f"   Progress: {i + len(batch)} / {len(segment_records)} street segments")
+        print(
+            f"   Progress: {i + len(batch)} / {len(segment_records)} street segments")
 
 cursor.close()
 conn.close()

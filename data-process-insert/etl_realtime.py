@@ -1,7 +1,11 @@
+import os
 import pandas as pd
 import mysql.connector
 from datetime import datetime
 import time
+from dotenv import load_dotenv
+
+load_dotenv()
 
 start_time = time.time()
 
@@ -9,7 +13,10 @@ start_time = time.time()
 # 1️⃣ Connecting to MySQL
 # =======================
 conn = mysql.connector.connect(
-    host="localhost", user="root", password="zcc663280", database="safepath"
+    host=os.getenv("DB_HOST", "localhost"),
+    user=os.getenv("DB_USER", "root"),
+    password=os.getenv("DB_PASSWORD", ""),
+    database=os.getenv("DB_NAME", "safepath"),
 )
 cursor = conn.cursor()
 
@@ -20,7 +27,8 @@ source_name = "Seattle Fire Real-Time 911"
 source_url = "https://data.seattle.gov/resource/kzjm-xkqj.csv"
 refresh_interval = 5
 
-cursor.execute("SELECT source_id FROM sources WHERE source_name=%s", (source_name,))
+cursor.execute(
+    "SELECT source_id FROM sources WHERE source_name=%s", (source_name,))
 row = cursor.fetchone()
 if row:
     source_id = row[0]
@@ -108,7 +116,7 @@ records = [
 
 batch_size = 1000
 for i in range(0, len(records), batch_size):
-    batch = records[i : i + batch_size]
+    batch = records[i: i + batch_size]
     cursor.executemany(
         """
         INSERT IGNORE INTO realtime_incidents
@@ -129,7 +137,8 @@ print(f"Inserted {len(df)} realtime incidents.")
 # 7️⃣ Update ETL_Run Record
 # =======================
 cursor.execute(
-    "UPDATE etl_runs SET record_count = %s WHERE etl_id = %s", (len(df), etl_id)
+    "UPDATE etl_runs SET record_count = %s WHERE etl_id = %s", (len(
+        df), etl_id)
 )
 conn.commit()
 
