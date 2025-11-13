@@ -151,7 +151,7 @@ Integration Checklist
   - For batch exports, query the table directly or add new Spring endpoints as needed.  
   - Field meanings: `risk_score` ∈ [0,1], `cluster_id` is the KMeans bucket, `override_reason` is a human-readable summary.
 
-- **REST API (already live)**  
+- **REST API**  
   - `GET /api/safety/segments/{unitid}` → single segment snapshot.  
   - `GET /api/safety/segments?west={lon}&south={lat}&east={lon}&north={lat}` → all segments in a map viewport.  
   - JSON response contains:  
