@@ -20,6 +20,7 @@ SET default_storage_engine=INNODB;
 -- //////////////////////////////////////////////////////
 DROP TABLE IF EXISTS user_alerts;
 DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS street_segment_risk;
 DROP TABLE IF EXISTS street_segments;
 DROP TABLE IF EXISTS intersections;
 DROP TABLE IF EXISTS realtime_incidents;
@@ -141,6 +142,21 @@ CREATE TABLE street_segments (
         ON UPDATE CASCADE ON DELETE SET NULL,
     FOREIGN KEY (end_intkey) REFERENCES intersections(intkey)
         ON UPDATE CASCADE ON DELETE SET NULL
+);
+
+CREATE TABLE street_segment_risk (
+    unitid VARCHAR(50) PRIMARY KEY,
+    cluster_id INT NOT NULL,
+    risk_label VARCHAR(10) NOT NULL,
+    risk_score DOUBLE NOT NULL,
+    incident_density DOUBLE,
+    night_fraction DOUBLE,
+    last_90d_incidents INT,
+    model_version VARCHAR(20),
+    override_reason VARCHAR(255),
+    updated_at DATETIME NOT NULL,
+    FOREIGN KEY (unitid) REFERENCES street_segments(unitid)
+        ON UPDATE CASCADE ON DELETE CASCADE
 );
 
 -- //////////////////////////////////////////////////////
