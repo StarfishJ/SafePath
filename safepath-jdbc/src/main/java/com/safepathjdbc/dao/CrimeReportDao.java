@@ -207,6 +207,92 @@ public class CrimeReportDao {
         return filtered;
     }
 
+    public List<CrimeReport> getCrimesByFilter(double lat, double lon, int radiusInMeters, List<String> crimeTypes, java.time.LocalDateTime startTime, java.time.LocalDateTime endTime, int limit) throws SQLException {
+        // Use GROUP_CONCAT to aggregate offense types for each report
+        StringBuilder sql = new StringBuilder("SELECT cr.*, GROUP_CONCAT(ot.offense_parent_group SEPARATOR ', ') as offense_types_agg ");
+        sql.append("FROM crime_reports cr ");
+        sql.append("LEFT JOIN report_offenses ro ON cr.report_number = ro.report_number ");
+        sql.append("LEFT JOIN offense_types ot ON ro.offense_code = ot.offense_code ");
+        sql.append("WHERE 1=1 ");
+
+        if (radiusInMeters > 0) {
+            // Spherical Law of Cosines: d = R * ACOS(SIN(lat1)*SIN(lat2) + COS(lat1)*COS(lat2)*COS(lon2-lon1))
+            // R = 6371000 meters
+            sql.append("AND (6371000 * ACOS(SIN(RADIANS(?)) * SIN(RADIANS(cr.blurred_latitude)) + COS(RADIANS(?)) * COS(RADIANS(cr.blurred_latitude)) * COS(RADIANS(cr.blurred_longitude) - RADIANS(?)))) <= ? ");
+        }
+
+        if (crimeTypes != null && !crimeTypes.isEmpty()) {
+            // We need to filter by having AT LEAST ONE of the requested crime types
+            // Since we are grouping, we can use HAVING or filter in WHERE before grouping.
+            // Filtering in WHERE is more efficient.
+            // Note: The LEFT JOIN above effectively becomes an INNER JOIN for the matching rows if we filter on the joined table here.
+            // However, to ensure we get the report even if it has other offenses, we should be careful.
+            // But the requirement is usually "show reports that contain these crimes".
+            sql.append("AND ot.offense_parent_group IN (");
+            for (int i = 0; i < crimeTypes.size(); i++) {
+                sql.append(i == 0 ? "?" : ", ?");
+            }
+            sql.append(") ");
+        }
+
+        if (startTime != null) {
+            sql.append("AND cr.report_datetime >= ? ");
+        }
+        if (endTime != null) {
+            sql.append("AND cr.report_datetime <= ? ");
+        }
+
+        sql.append("GROUP BY cr.report_number ");
+        sql.append("LIMIT ?");
+
+        try (Connection c = ConnectionManager.getConnection(); PreparedStatement ps = c.prepareStatement(sql.toString())) {
+            int idx = 1;
+            if (radiusInMeters > 0) {
+                ps.setDouble(idx++, lat);
+                ps.setDouble(idx++, lat);
+                ps.setDouble(idx++, lon);
+                ps.setInt(idx++, radiusInMeters);
+            }
+            if (crimeTypes != null && !crimeTypes.isEmpty()) {
+                for (String type : crimeTypes) {
+                    ps.setString(idx++, type);
+                }
+            }
+            if (startTime != null) {
+                ps.setTimestamp(idx++, Timestamp.valueOf(startTime));
+            }
+            if (endTime != null) {
+                ps.setTimestamp(idx++, Timestamp.valueOf(endTime));
+            }
+            ps.setInt(idx++, limit);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                List<CrimeReport> list = new ArrayList<>();
+                while (rs.next()) {
+                    CrimeReport r = new CrimeReport();
+                    r.setReportNumber(rs.getString("report_number"));
+                    Timestamp ts = rs.getTimestamp("report_datetime");
+                    r.setReportDatetime(ts == null ? null : ts.toLocalDateTime());
+                    r.setPrecinct(rs.getString("precinct"));
+                    r.setSector(rs.getString("sector"));
+                    r.setBeat(rs.getString("beat"));
+                    r.setMcppNeighborhood(rs.getString("mcpp_neighborhood"));
+                    r.setBlurredAddress(rs.getString("blurred_address"));
+                    double rLat = rs.getDouble("blurred_latitude");
+                    r.setBlurredLatitude(rs.wasNull() ? null : rLat);
+                    double rLon = rs.getDouble("blurred_longitude");
+                    r.setBlurredLongitude(rs.wasNull() ? null : rLon);
+                    
+                    // Set the aggregated offense types
+                    r.setOffenseType(rs.getString("offense_types_agg"));
+                    
+                    list.add(r);
+                }
+                return list;
+            }
+        }
+    }
+
     private static double haversine(double lat1, double lon1, double lat2, double lon2) {
         double R = 6371.0; // km
         double dLat = Math.toRadians(lat2 - lat1);

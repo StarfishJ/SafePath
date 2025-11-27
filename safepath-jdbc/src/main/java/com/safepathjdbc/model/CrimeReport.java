@@ -14,7 +14,13 @@ public class CrimeReport {
     private Double blurredLatitude;
     private Double blurredLongitude;
 
+    // Transient field for display purposes (not directly mapped to crime_reports table columns)
+    private String offenseType;
+
     public CrimeReport() {}
+
+    public String getOffenseType() { return offenseType; }
+    public void setOffenseType(String offenseType) { this.offenseType = offenseType; }
 
     public String getReportNumber() { return reportNumber; }
     public void setReportNumber(String reportNumber) { this.reportNumber = reportNumber; }
