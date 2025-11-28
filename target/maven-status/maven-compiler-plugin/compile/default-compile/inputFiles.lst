@@ -4,6 +4,7 @@
 /Users/mm/Desktop/SafePath/src/main/java/com/safepath/controller/CrimeReportController.java
 /Users/mm/Desktop/SafePath/src/main/java/com/safepath/controller/CustomErrorController.java
 /Users/mm/Desktop/SafePath/src/main/java/com/safepath/controller/HomeController.java
+/Users/mm/Desktop/SafePath/src/main/java/com/safepath/controller/RouteRiskController.java
 /Users/mm/Desktop/SafePath/src/main/java/com/safepath/controller/SafetyRecommendationController.java
 /Users/mm/Desktop/SafePath/src/main/java/com/safepath/controller/UserAlertController.java
 /Users/mm/Desktop/SafePath/src/main/java/com/safepath/dto/AppUserDto.java
@@ -11,6 +12,8 @@
 /Users/mm/Desktop/SafePath/src/main/java/com/safepath/dto/CreateUserAlertRequest.java
 /Users/mm/Desktop/SafePath/src/main/java/com/safepath/dto/CreateUserRequest.java
 /Users/mm/Desktop/SafePath/src/main/java/com/safepath/dto/CrimeReportDto.java
+/Users/mm/Desktop/SafePath/src/main/java/com/safepath/dto/GoogleRouteRequest.java
+/Users/mm/Desktop/SafePath/src/main/java/com/safepath/dto/RouteRiskResponse.java
 /Users/mm/Desktop/SafePath/src/main/java/com/safepath/dto/StreetSegmentRiskDto.java
 /Users/mm/Desktop/SafePath/src/main/java/com/safepath/dto/UserAlertDto.java
 /Users/mm/Desktop/SafePath/src/main/java/com/safepath/model/AppUser.java
@@ -37,9 +40,12 @@
 /Users/mm/Desktop/SafePath/src/main/java/com/safepath/repository/UserAlertRepository.java
 /Users/mm/Desktop/SafePath/src/main/java/com/safepath/service/AppUserService.java
 /Users/mm/Desktop/SafePath/src/main/java/com/safepath/service/CrimeReportService.java
+/Users/mm/Desktop/SafePath/src/main/java/com/safepath/service/RouteRiskService.java
 /Users/mm/Desktop/SafePath/src/main/java/com/safepath/service/SafetyRecommendationService.java
 /Users/mm/Desktop/SafePath/src/main/java/com/safepath/service/UserAlertService.java
 /Users/mm/Desktop/SafePath/src/main/java/com/safepath/service/impl/AppUserServiceImpl.java
 /Users/mm/Desktop/SafePath/src/main/java/com/safepath/service/impl/CrimeReportServiceImpl.java
+/Users/mm/Desktop/SafePath/src/main/java/com/safepath/service/impl/RouteRiskServiceImpl.java
 /Users/mm/Desktop/SafePath/src/main/java/com/safepath/service/impl/SafetyRecommendationServiceImpl.java
 /Users/mm/Desktop/SafePath/src/main/java/com/safepath/service/impl/UserAlertServiceImpl.java
+/Users/mm/Desktop/SafePath/src/main/java/com/safepath/util/PolylineDecoder.java

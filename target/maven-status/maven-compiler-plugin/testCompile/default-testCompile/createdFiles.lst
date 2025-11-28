@@ -1,0 +1,6 @@
+com/safepath/integration/UserAlertIntegrationTest.class
+com/safepath/integration/CrimeReportIntegrationTest.class
+com/safepath/integration/SafetyRecommendationIntegrationTest.class
+com/safepath/integration/RouteRiskIntegrationTest.class
+com/safepath/integration/AppUserIntegrationTest.class
+com/safepath/SafePathApplicationTests.class
