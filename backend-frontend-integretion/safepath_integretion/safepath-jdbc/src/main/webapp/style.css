@@ -1,0 +1,220 @@
+body {
+    margin: 0;
+    font-family: sans-serif;
+}
+
+/* 顶部导航栏 */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    background: #eeeeee;
+}
+
+.search-input {
+    width: 40%;
+    padding: 12px;
+    border-radius: 20px;
+    border: none;
+    background: #ddd;
+}
+
+.auth-buttons {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.auth-buttons button {
+    border: none;
+    padding: 8px 18px;
+    border-radius: 18px;
+    background: #ddd;
+}
+
+.logo {
+    font-size: 22px;
+    font-weight: 700;
+}
+
+/* 主体部分： 左侧栏 + 右侧地图 */
+.main {
+    display: flex;
+    height: calc(100vh - 60px);
+}
+
+/* 左侧栏 */
+.sidebar {
+    width: 30%;
+    background: #d9d9d9;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    overflow-y: auto; /* 整体允许滚动 */
+}
+
+/* 筛选按钮区域 */
+.filters {
+    display: flex;
+    gap: 10px;
+}
+
+.filters button {
+    flex: 1;
+    border: none;
+    padding: 10px 0;
+    border-radius: 15px;
+    background: #e9e9e9;
+}
+
+/* 目的地输入框 */
+.search-destination {
+    padding: 12px;
+    border-radius: 20px;
+    border: none;
+    background: #eee;
+}
+
+/* 左侧 alert 列表 */
+.alert-list {
+    display: flex;
+    padding: 10px;
+    flex-direction: column;
+    gap: 15px;
+    flex: 1; /* 占据可用空间 */
+    min-height: 200px; /* 设置最小高度，不会被压缩太小 */
+    overflow-y: auto; /* 允许滚动 */
+}
+
+.alert-item {
+    background: #f2edec;
+    padding: 40px;
+    max-height: 200px;
+    border-radius: 15px;
+    text-align: center;
+    font-weight: 600;
+}
+
+/* 右侧地图 */
+.map-area {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    font-size: 15px;
+    position: relative;
+    min-width: 0; /* 允许 flex 子元素缩小 */
+}
+
+/* 地图容器 */
+#map {
+    width: 100%;
+    height: 100%;
+    min-height: 0; /* 允许 flex 子元素缩小 */
+}
+
+/* 浮动按钮 */
+.floating-btn {
+    position: fixed;
+    right: 40px;
+    bottom: 40px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: none;
+    background: #dedede;
+    font-size: 28px;
+    cursor: pointer;
+}
+
+.route-details {
+    /*margin-top: 10px;*/
+    padding: 10px;
+    font-size: 14px;
+    flex-shrink: 0; /* 防止被压缩 */
+    max-height: 400px; /* 设置最大高度 */
+    overflow-y: auto; /* 超过后可滚动 */
+}
+
+.route-block {
+    border: 1px solid #ccc;
+    padding: 8px;
+    margin-bottom: 15px;
+    background: #fafafa;
+    border-radius: 6px;
+}
+
+.route-block h3 {
+    margin-bottom: 8px;
+    font-size: 16px;
+    color: #0077cc;
+}
+
+/*gmpx-place-autocomplete {*/
+/*    padding: 12px;*/
+/*    border-radius: 20px;*/
+/*    border: none;*/
+/*    background: #ddd;*/
+/*    font-size: 14px;*/
+/*    display: block;*/
+/*}*/
+
+/* 折叠卡片外层 */
+.route-block {
+    background: #ffffff;
+    border-radius: 10px;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+/* 标题区域 */
+.route-header {
+    padding: 14px 16px;
+    background: #f6f8fa;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+/* 小箭头 */
+.route-header .arrow {
+    transition: transform 0.25s ease;
+}
+.route-header .arrow.open {
+    transform: rotate(180deg);
+}
+
+/* 折叠内容区域 */
+.route-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.35s ease;
+    padding: 0 16px;
+}
+
+/* 打开后显示内容 */
+.route-content.open {
+    padding: 16px;
+    max-height: 300px; /* 足够显示步骤 */
+    overflow-y: auto; /* 超过最大高度时可以滚动 */
+    flex-shrink: 0; /* 防止被压缩 */
+}
+
+/* 文字优化 */
+.route-content ol {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.route-content li {
+    margin-bottom: 6px;
+}
+
+
+
