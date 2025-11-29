@@ -25,6 +25,7 @@ CREATE TABLE etl_runs (
     source_id INT NOT NULL,
     run_time DATETIME NOT NULL,
     record_count INT,
+    invalid_count INT DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (source_id) REFERENCES sources(source_id)
         ON UPDATE CASCADE ON DELETE CASCADE
