@@ -1,14 +1,14 @@
-import { loadCrimeByRange, renderCrimeList, addCrimeMarkers } from "./crime.js";
+import { loadCrimeByRange, loadCrimeByRangeWithFilters, renderCrimeList, addCrimeMarkers, initFilters, crimeMarkers } from "./crime.js";
 
 let map;
 let directionsService;
 
-let routePolylines = [];   // 各路线 polyline
-let markers = [];          // 起点终点 marker
+let routePolylines = [];   // polyline for each route
+let markers = [];          // start and end markers
 let selectedRouteIndex = null;
 
 // ===================================================
-// 初始化地图
+// initialize the map
 // ===================================================
 function initMap() {
     const center = { lat: 47.6062, lng: -122.3321 };
@@ -22,7 +22,7 @@ function initMap() {
     console.log("🗺️ Map created:", map);
     console.log("🗺️ Map instanceof google.maps.Map?", map instanceof google.maps.Map);
     
-    // 将 map 挂载到 window，供其他模块使用
+    // mount the map to window, for other modules usage
     window.map = map;
     
     console.log("🗺️ window.map assigned:", window.map);
@@ -32,15 +32,22 @@ function initMap() {
 
     initAutocomplete();
 
-    // 使用地图初次加载后的范围加载犯罪数据
+    // Initialize filter UI (async - loads crime types from backend)
+    initFilters().then(() => {
+        console.log("✅ Filters initialized");
+    }).catch(err => {
+        console.error("❌ Failed to initialize filters:", err);
+    });
+
+    // use the map range after the map is initially loaded to load crime data
     google.maps.event.addListenerOnce(map, "idle", () => {
         refreshCrimeByMapBounds();
     });
 
-    // 当用户拖动或缩放地图后 → 自动加载新范围的数据
+    // when the user drags or zooms the map → automatically load new range data
     map.addListener("idle", refreshCrimeByMapBounds);
 
-    // 监听窗口变化
+    // listen for window resize
     window.addEventListener('resize', () => {
         if (map) google.maps.event.trigger(map, 'resize');
     });
@@ -56,7 +63,7 @@ function initMap() {
 
 
 // ===================================================
-// 自动根据地图范围加载犯罪数据
+// automatically load crime data based on the map range
 // ===================================================
 async function refreshCrimeByMapBounds() {
     console.log("📍 refreshCrimeByMapBounds called");
@@ -83,29 +90,38 @@ async function refreshCrimeByMapBounds() {
     const minLon = sw.lng();
     const maxLon = ne.lng();
 
-    console.log("📍 地图范围：", { minLat, maxLat, minLon, maxLon });
+    console.log("📍 Map range:", { minLat, maxLat, minLon, maxLon });
 
-    // 调用 crime.js 的 API，默认 50 天
-    const crimes = await loadCrimeByRange(minLat, maxLat, minLon, maxLon, 50);
+    // Use filtered loading if filters are active, otherwise use default range
+    let crimes;
+    try {
+        crimes = await loadCrimeByRangeWithFilters(minLat, maxLat, minLon, maxLon);
+    } catch (e) {
+        console.warn("⚠️ Filtered load failed, falling back to default:", e);
+        crimes = await loadCrimeByRange(minLat, maxLat, minLon, maxLon, 50);
+    }
 
-    console.log("📍 加载到的犯罪数据数量：", crimes.length);
+    console.log("📍 Number of crimes loaded:", crimes.length);
     console.log("📍 Before calling addCrimeMarkers - window.map exists?", !!window.map);
     console.log("📍 Before calling addCrimeMarkers - window.map instanceof google.maps.Map?", window.map instanceof google.maps.Map);
 
-    // 渲染列表、渲染 markers
+    // render the list and markers
     renderCrimeList(crimes);
     addCrimeMarkers(crimes);
     
     if (crimes.length > 0) {
-        console.log("✅ 成功在地图上添加", crimes.length, "个标记点");
+        console.log("✅ Successfully added", crimes.length, "markers to the map");
     } else {
-        console.warn("⚠️ 当前地图范围内没有犯罪数据");
+        console.warn("⚠️ No crimes found in the current map range");
     }
 }
 
+// Expose refresh function globally for filter callbacks
+window.refreshCrimeData = refreshCrimeByMapBounds;
+
 
 // ===================================================
-// 你的其余路线规划代码（保持原样）
+// other route planning code
 // ===================================================
 function initAutocomplete() {
     const inputFrom = document.getElementById("location-input");
@@ -130,7 +146,7 @@ function initAutocomplete() {
 }
 
 
-// ---------- 工具 ----------
+// ---------- Tools ----------
 function addMarker(position) {
     const m = new google.maps.Marker({
         map,
@@ -149,14 +165,14 @@ function clearMapObjects() {
 
 
 // ===================================================
-// 路线计算（完全保留）
+// Route calculation (integrate risk scoring)
 // ===================================================
-function calculateRoute() {
+async function calculateRoute() {
     const origin = document.getElementById("location-input").value;
     const destination = document.querySelector(".search-destination").value;
 
     if (!origin || !destination) {
-        alert("请输入起点和终点");
+        alert("Please enter the origin and destination");
         return;
     }
 
@@ -165,22 +181,83 @@ function calculateRoute() {
         destination,
         travelMode: "DRIVING",
         provideRouteAlternatives: true,
-    }, (result, status) => {
+        language: "en",  // Force English language for route names and instructions
+    }, async (result, status) => {
 
         if (status !== "OK") {
-            alert("路线规划失败：" + status);
+            alert("Route planning failed: " + status);
             return;
         }
 
         clearMapObjects();
-        drawRoutes(result);
-        showRouteDetails(result);
+        
+        // call the backend API to calculate the route risk
+        let riskAnalysis = null;
+        try {
+            console.log("📊 Calculating route risk score...");
+            console.log("📊 Google Directions result:", result);
+            
+            // convert the Google Directions Service result format to the format expected by the backend
+            const requestData = {
+                routes: result.routes.map(route => ({
+                    summary: route.summary || "",
+                    legs: route.legs.map(leg => ({
+                        steps: leg.steps.map(step => ({
+                            instructions: step.instructions || "",
+                            distance: step.distance ? {
+                                text: step.distance.text || "",
+                                value: step.distance.value || 0
+                            } : null,
+                            duration: step.duration ? {
+                                text: step.duration.text || "",
+                                value: step.duration.value || 0
+                            } : null,
+                            start_location: step.start_location ? {
+                                lat: step.start_location.lat(),
+                                lng: step.start_location.lng()
+                            } : null,
+                            end_location: step.end_location ? {
+                                lat: step.end_location.lat(),
+                                lng: step.end_location.lng()
+                            } : null,
+                            polyline: step.polyline ? {
+                                points: step.polyline.points || ""
+                            } : null
+                        }))
+                    }))
+                }))
+            };
+            
+            console.log("📊 Sending data to backend:", requestData);
+            
+            const response = await fetch("http://localhost:8081/api/routes/risk", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(requestData)
+            });
+            
+            console.log("📊 API response status:", response.status, response.statusText);
+            
+            if (response.ok) {
+                riskAnalysis = await response.json();
+                console.log("✅ Route risk analysis result:", riskAnalysis);
+            } else {
+                const errorText = await response.text();
+                console.warn("⚠️ Route risk analysis API call failed:", response.status, errorText);
+            }
+        } catch (error) {
+            console.error("❌ Error calling route risk analysis API:", error);
+            console.error("❌ Error details:", error.message, error.stack);
+        }
+        
+        drawRoutes(result, riskAnalysis);
+        showRouteDetails(result, riskAnalysis);
     });
 }
 
 
-// ---------- 绘制多路线 ----------
-function drawRoutes(result) {
+// ---------- draw multiple routes ----------
+function drawRoutes(result, riskAnalysis) {
     const routes = result.routes.slice(0, 3);
 
     routes.forEach((route, index) => {
@@ -201,14 +278,31 @@ function drawRoutes(result) {
 }
 
 
-// ---------- 展示路线详情 ----------
-function showRouteDetails(result) {
+// ---------- Show route details (including risk score)----------
+function showRouteDetails(result, riskAnalysis) {
     const container = document.getElementById("route-details");
     container.innerHTML = "";
 
     const routes = result.routes.slice(0, 3);
 
-    routes.forEach((route, index) => {
+    // if there is risk analysis, sort the routes by risk score (the safest routes first)
+    let sortedRoutes = [...routes];
+    if (riskAnalysis && riskAnalysis.routes) {
+        sortedRoutes = routes.map((route, index) => ({
+            route,
+            index,
+            riskData: riskAnalysis.routes[index] || null
+        })).sort((a, b) => {
+            const scoreA = a.riskData ? a.riskData.totalRiskScore : 999;
+            const scoreB = b.riskData ? b.riskData.totalRiskScore : 999;
+            return scoreA - scoreB;
+        });
+    }
+
+    sortedRoutes.forEach((item, displayIndex) => {
+        const route = item.route || item;
+        const originalIndex = item.index !== undefined ? item.index : displayIndex;
+        const riskData = item.riskData || (riskAnalysis && riskAnalysis.routes[originalIndex]) || null;
         const leg = route.legs[0];
 
         const block = document.createElement("div");
@@ -216,9 +310,19 @@ function showRouteDetails(result) {
 
         const header = document.createElement("div");
         header.className = "route-header";
+        
+        // build the risk score display
+        let riskBadge = "";
+        if (riskData) {
+            const riskScore = riskData.totalRiskScore;
+            riskBadge = `<span style="margin-left: 10px;">
+                Risk score: ${riskScore.toFixed(2)}
+            </span>`;
+        }
+        
         header.innerHTML = `
-            <span>路线 ${index + 1}</span>
-            <span>${leg.distance.text} • ${leg.duration.text}</span>
+            <span>Route ${displayIndex + 1}</span>
+            <span>${leg.distance.text} • ${leg.duration.text}${riskBadge}</span>
             <span class="arrow">▼</span>
         `;
 
@@ -226,8 +330,16 @@ function showRouteDetails(result) {
         content.className = "route-content";
 
         let list = "<ol>";
-        leg.steps.forEach(step => {
-            list += `<li>${step.instructions} (${step.distance.text})</li>`;
+        leg.steps.forEach((step, stepIndex) => {
+            let stepRiskInfo = "";
+            if (riskData && riskData.stepRisks && riskData.stepRisks[stepIndex]) {
+                const stepRisk = riskData.stepRisks[stepIndex];
+                const stepLabel = stepRisk.dominantRiskLabel || "UNKNOWN";
+                stepRiskInfo = ` <span style="font-size: 0.9em;">
+                    [${stepLabel}: ${stepRisk.averageRiskScore.toFixed(2)}]
+                </span>`;
+            }
+            list += `<li>${step.instructions} (${step.distance.text})${stepRiskInfo}</li>`;
         });
         list += "</ol>";
         content.innerHTML = list;
@@ -238,14 +350,14 @@ function showRouteDetails(result) {
             header.querySelector(".arrow").classList.toggle("open");
         });
 
-        block.addEventListener("mouseenter", () => highlightRoute(index));
+        block.addEventListener("mouseenter", () => highlightRoute(originalIndex));
         block.addEventListener("mouseleave", () => {
-            if (selectedRouteIndex !== index) resetRoute(index);
+            if (selectedRouteIndex !== originalIndex) resetRoute(originalIndex);
         });
 
         block.addEventListener("click", () => {
-            selectedRouteIndex = index;
-            highlightExclusive(index);
+            selectedRouteIndex = originalIndex;
+            highlightExclusive(originalIndex);
         });
 
         block.appendChild(header);
@@ -255,7 +367,7 @@ function showRouteDetails(result) {
 }
 
 
-// ---------- 高亮 ----------
+// ---------- Highlight ----------
 function highlightRoute(i) {
     routePolylines[i].setOptions({
         strokeColor: "#1976ff",
@@ -290,8 +402,8 @@ function highlightExclusive(i) {
     });
 }
 
-// 将 initMap 挂载到 window，供 Google Maps API callback 使用
-// 必须在模块加载时立即挂载，因为 Google Maps API 可能异步加载
+// mount initMap to window, for Google Maps API callback usage
+// it must be mounted immediately when the module is loaded, because the Google Maps API may load asynchronously
 window.initMap = initMap;
 
 console.log("map.js loaded (with crime integration).");

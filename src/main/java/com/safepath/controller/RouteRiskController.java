@@ -1,13 +1,15 @@
 package com.safepath.controller;
 
-import com.safepath.dto.GoogleRouteRequest;
-import com.safepath.dto.RouteRiskResponse;
-import com.safepath.service.RouteRiskService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.safepath.dto.GoogleRouteRequest;
+import com.safepath.dto.RouteRiskResponse;
+import com.safepath.service.RouteRiskService;
 
 /**
  * REST controller for analyzing route safety.
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/api/routes/risk")
+@CrossOrigin(origins = {"http://localhost:9090", "http://127.0.0.1:9090"})
 public class RouteRiskController {
 
     private final RouteRiskService routeRiskService;

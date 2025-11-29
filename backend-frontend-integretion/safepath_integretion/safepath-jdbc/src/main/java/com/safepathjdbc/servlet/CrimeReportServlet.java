@@ -1,16 +1,10 @@
 package com.safepathjdbc.servlet;
 
-import com.safepathjdbc.dao.CrimeReportDao;
-import com.safepathjdbc.model.CrimeReport;
-import com.safepathjdbc.util.DatabaseInitializer;
-
-import jakarta.servlet.ServletException;
-import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.HttpServlet;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -19,8 +13,19 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.safepathjdbc.dao.CrimeReportDao;
+import com.safepathjdbc.model.CrimeReport;
+import com.safepathjdbc.util.ConnectionManager;
+import com.safepathjdbc.util.DatabaseInitializer;
+
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 @WebServlet(urlPatterns = {"/crimeReports", "/crime-report"})
 public class CrimeReportServlet extends HttpServlet {
@@ -82,7 +87,7 @@ public class CrimeReportServlet extends HttpServlet {
                     if (ok) {
                         Map<String, Object> obj = new HashMap<>();
                         obj.put("reportNumber", r.getReportNumber());
-                        obj.put("crimeType", r.getReportNumber());
+                        obj.put("crimeType", r.getOffenseType() != null ? r.getOffenseType() : "Unknown");
                         obj.put("description",
                                 r.getBlurredAddress() != null ? r.getBlurredAddress() :
                                         (r.getMcppNeighborhood() != null ? r.getMcppNeighborhood() : "No description"));
@@ -113,7 +118,7 @@ public class CrimeReportServlet extends HttpServlet {
                 for (CrimeReport r : list) {
                     Map<String, Object> jsonObj = new HashMap<>();
                     jsonObj.put("reportNumber", r.getReportNumber());
-                    jsonObj.put("crimeType", r.getReportNumber()); // Using reportNumber as crimeType for now
+                    jsonObj.put("crimeType", r.getOffenseType() != null ? r.getOffenseType() : "Unknown");
                     jsonObj.put("description", r.getBlurredAddress() != null ? r.getBlurredAddress() : 
                                 (r.getMcppNeighborhood() != null ? r.getMcppNeighborhood() : "No description"));
                     jsonObj.put("latitude", r.getBlurredLatitude()); // Keep as Double for JSON
@@ -136,6 +141,11 @@ public class CrimeReportServlet extends HttpServlet {
 
             if ("filter".equals(action)) {
                 handleFilter(req, resp);
+                return;
+            }
+            
+            if ("crimeTypes".equals(action)) {
+                handleGetCrimeTypes(req, resp);
                 return;
             }
             
@@ -225,7 +235,9 @@ public class CrimeReportServlet extends HttpServlet {
         try {
             double lat = Double.parseDouble(req.getParameter("lat"));
             double lon = Double.parseDouble(req.getParameter("lon"));
-            int radius = Integer.parseInt(req.getParameter("radius"));
+            // Parse radius as double first, then convert to int (round to nearest meter)
+            double radiusDouble = Double.parseDouble(req.getParameter("radius"));
+            int radius = (int) Math.round(radiusDouble);
             
             String crimeTypesParam = req.getParameter("crimeTypes");
             List<String> crimeTypes = null;
@@ -251,7 +263,8 @@ public class CrimeReportServlet extends HttpServlet {
                 if (i > 0) json.append(",");
                 json.append("{");
                 json.append("\"reportNumber\":\"").append(escapeJson(r.getReportNumber())).append("\",");
-                json.append("\"offenseType\":\"").append(escapeJson(r.getOffenseType())).append("\",");
+                json.append("\"crimeType\":\"").append(escapeJson(r.getOffenseType() != null ? r.getOffenseType() : "Unknown")).append("\",");
+                json.append("\"offenseType\":\"").append(escapeJson(r.getOffenseType() != null ? r.getOffenseType() : "Unknown")).append("\",");
                 json.append("\"reportDatetime\":\"").append(r.getReportDatetime() != null ? r.getReportDatetime().toString() : "").append("\",");
                 json.append("\"latitude\":").append(r.getBlurredLatitude()).append(",");
                 json.append("\"longitude\":").append(r.getBlurredLongitude()).append(",");
@@ -278,16 +291,65 @@ public class CrimeReportServlet extends HttpServlet {
             return null;
         }
         try {
-            // Try parsing datetime-local format: "yyyy-MM-ddTHH:mm"
-            return LocalDateTime.parse(dt, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+            // Try parsing datetime-local format: "yyyy-MM-ddTHH:mm" or "yyyy-MM-ddTHH:mm:ss"
+            // Handle both formats
+            if (dt.length() == 16) {
+                // Format: "yyyy-MM-ddTHH:mm"
+                return LocalDateTime.parse(dt, DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"));
+            } else {
+                // Try ISO format (includes seconds)
+                return LocalDateTime.parse(dt, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+            }
         } catch (DateTimeParseException e) {
             try {
-                // Fallback: try ISO format
+                // Fallback: try ISO format without seconds
                 return LocalDateTime.parse(dt);
             } catch (DateTimeParseException e2) {
-                // If all else fails, return current time
-                return LocalDateTime.now();
+                // If all else fails, return null (don't apply time filter)
+                System.err.println("Failed to parse datetime: " + dt + ", error: " + e2.getMessage());
+                return null;
             }
+        }
+    }
+
+    private void handleGetCrimeTypes(HttpServletRequest req, HttpServletResponse resp) throws IOException, SQLException {
+        resp.setContentType("application/json");
+        resp.setCharacterEncoding("UTF-8");
+        
+        try {
+            // Get distinct offense_parent_group values that have actual crime reports
+            String sql = "SELECT DISTINCT ot.offense_parent_group " +
+                        "FROM offense_types ot " +
+                        "INNER JOIN report_offenses ro ON ot.offense_code = ro.offense_code " +
+                        "INNER JOIN crime_reports cr ON ro.report_number = cr.report_number " +
+                        "WHERE ot.offense_parent_group IS NOT NULL " +
+                        "ORDER BY ot.offense_parent_group";
+            
+            List<String> crimeTypes = new ArrayList<>();
+            try (Connection c = ConnectionManager.getConnection(); 
+                 PreparedStatement ps = c.prepareStatement(sql); 
+                 ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String type = rs.getString("offense_parent_group");
+                    if (type != null && !type.trim().isEmpty()) {
+                        crimeTypes.add(type);
+                    }
+                }
+            }
+            
+            // Build JSON response
+            StringBuilder json = new StringBuilder();
+            json.append("[");
+            for (int i = 0; i < crimeTypes.size(); i++) {
+                if (i > 0) json.append(",");
+                json.append("\"").append(escapeJson(crimeTypes.get(i))).append("\"");
+            }
+            json.append("]");
+            
+            resp.getWriter().write(json.toString());
+        } catch (Exception e) {
+            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            resp.getWriter().write("{\"error\":\"" + escapeJson(e.getMessage()) + "\"}");
         }
     }
 

@@ -23,13 +23,27 @@ from sklearn.neighbors import BallTree
 from sklearn.preprocessing import StandardScaler
 from dotenv import load_dotenv
 
+# import the unified config loader
+try:
+    from config_loader import get_db_config
+    USE_UNIFIED_CONFIG = True
+except ImportError:
+    USE_UNIFIED_CONFIG = False
+    # Fallback to dotenv if config_loader is not available
+    import pathlib
+    script_dir = pathlib.Path(__file__).parent
+    project_root = script_dir.parent
+    env_file = project_root / ".env"
+    if env_file.exists():
+        load_dotenv(env_file)
+    else:
+        load_dotenv()
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
 )
 LOGGER = logging.getLogger("segment_risk_clustering")
-
-load_dotenv()
 
 
 # ---------------------------------------------------------------------------
@@ -47,19 +61,45 @@ class DbConfig:
 
     @classmethod
     def from_env(cls) -> "DbConfig":
-        return cls(
-            host=os.getenv("DB_HOST", "localhost"),
-            port=int(os.getenv("DB_PORT", "3306")),
-            user=os.getenv("DB_USER", "root"),
-            password=os.getenv("DB_PASSWORD", "zcc663280"),
-            database=os.getenv("DB_NAME", "safepath"),
-        )
+        # use the unified config loader to read the database configuration from the db.properties file
+        if USE_UNIFIED_CONFIG:
+            config = get_db_config()
+            password = config.get("DB_PASSWORD")
+            if not password:
+                raise ValueError(
+                    "DB_PASSWORD must be set in db.properties file or environment variable. "
+                    "Please create db.properties in the project root with db.password=your_password"
+                )
+            return cls(
+                host=config.get("DB_HOST", "localhost"),
+                port=int(config.get("DB_PORT", "3306")),
+                user=config.get("DB_USER", "root"),
+                password=password,
+                database=config.get("DB_NAME", "safepath"),
+            )
+        else:
+            # Fallback to original dotenv method
+            password = os.getenv("DB_PASSWORD")
+            if not password:
+                raise ValueError(
+                    "DB_PASSWORD must be set in .env file or environment variable. "
+                    "Please create a .env file in the project root with DB_PASSWORD=your_password"
+                )
+            return cls(
+                host=os.getenv("DB_HOST", "localhost"),
+                port=int(os.getenv("DB_PORT", "3306")),
+                user=os.getenv("DB_USER", "root"),
+                password=password,
+                database=os.getenv("DB_NAME", "safepath"),
+            )
 
 
 MODEL_VERSION = os.getenv("SEGMENT_RISK_MODEL_VERSION", "kmeans_c1_v1")
 LOOKBACK_DAYS = int(os.getenv("SEGMENT_RISK_LOOKBACK_DAYS", "90"))
 RECENT_WINDOW_DAYS = int(os.getenv("SEGMENT_RISK_RECENT_DAYS", "30"))
 N_CLUSTERS = int(os.getenv("SEGMENT_RISK_NUM_CLUSTERS", "3"))
+# Batch size for submission: avoid holding locks for a long time, reduce the impact on queries
+BATCH_SIZE = int(os.getenv("SEGMENT_RISK_BATCH_SIZE", "100"))
 EARTH_RADIUS_METERS = 6_371_000
 
 
@@ -315,28 +355,60 @@ def cluster_segments(features: pd.DataFrame) -> pd.DataFrame:
 # ---------------------------------------------------------------------------
 
 
-def persist_results(conn: MySQLConnection, features: pd.DataFrame) -> None:
+def persist_results(conn: MySQLConnection, features: pd.DataFrame, batch_size: int = 100) -> None:
+    """
+    Batch submission of updates, avoid holding locks for a long time, reduce the impact on queries
+    
+    Args:
+        conn: database connection
+        features: data to be updated
+        batch_size: number of records to process per batch (default 100, can be adjusted according to the data volume)
+    """
     now = datetime.now(timezone.utc)
-    rows = [
-        (
-            row.unitid,
-            int(row.cluster_id),
-            row.risk_label,
-            float(row.risk_score),
-            float(row.incident_density),
-            float(row.night_fraction),
-            int(row.incidents_90d),
-            MODEL_VERSION,
-            row.summary,
-            now,
-        )
-        for row in features.itertuples(index=False)
-    ]
+    total_rows = len(features)
     cursor = conn.cursor()
-    cursor.execute(CREATE_TABLE_SQL)
-    cursor.executemany(UPSERT_SQL, rows)
-    conn.commit()
-    cursor.close()
+    
+    try:
+        cursor.execute(CREATE_TABLE_SQL)
+        
+        # batch processing, submit each batch once, avoid holding locks for a long time
+        for i in range(0, total_rows, batch_size):
+            batch = features.iloc[i:i + batch_size]
+            rows = [
+                (
+                    row.unitid,
+                    int(row.cluster_id),
+                    row.risk_label,
+                    float(row.risk_score),
+                    float(row.incident_density),
+                    float(row.night_fraction),
+                    int(row.incidents_90d),
+                    MODEL_VERSION,
+                    row.summary,
+                    now,
+                )
+                for row in batch.itertuples(index=False)
+            ]
+            
+            # execute and immediately commit, release locks
+            cursor.executemany(UPSERT_SQL, rows)
+            conn.commit()
+            
+            # output progress (for display on the frontend)
+            progress = int((i + len(batch)) / total_rows * 100) if total_rows > 0 else 100
+            LOGGER.info(
+                "Updated %d/%d records (%d%%)",
+                i + len(batch),
+                total_rows,
+                progress
+            )
+            
+    except Exception as e:
+        conn.rollback()
+        LOGGER.error("Error updating data: %s", e)
+        raise
+    finally:
+        cursor.close()
 
 
 # ---------------------------------------------------------------------------
@@ -373,7 +445,7 @@ def main() -> None:
             return
 
         clustered = cluster_segments(feature_frame)
-        persist_results(conn, clustered)
+        persist_results(conn, clustered, batch_size=BATCH_SIZE)
         LOGGER.info("Persisted risk scores for %s segments.", len(clustered))
 
 

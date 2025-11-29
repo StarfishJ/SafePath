@@ -55,7 +55,13 @@ public class CrimeReportDao {
     }
 
     public List<CrimeReport> findAll() throws SQLException {
-        String sql = "SELECT report_number, report_datetime, precinct, sector, beat, mcpp_neighborhood, blurred_address, blurred_latitude, blurred_longitude FROM crime_reports ORDER BY report_datetime DESC";
+        String sql = "SELECT cr.report_number, cr.report_datetime, cr.precinct, cr.sector, cr.beat, cr.mcpp_neighborhood, cr.blurred_address, cr.blurred_latitude, cr.blurred_longitude, " +
+                     "GROUP_CONCAT(DISTINCT ot.offense_parent_group SEPARATOR ', ') as offense_types_agg " +
+                     "FROM crime_reports cr " +
+                     "LEFT JOIN report_offenses ro ON cr.report_number = ro.report_number " +
+                     "LEFT JOIN offense_types ot ON ro.offense_code = ot.offense_code " +
+                     "GROUP BY cr.report_number, cr.report_datetime, cr.precinct, cr.sector, cr.beat, cr.mcpp_neighborhood, cr.blurred_address, cr.blurred_latitude, cr.blurred_longitude " +
+                     "ORDER BY cr.report_datetime DESC";
         List<CrimeReport> out = new ArrayList<>();
         try (Connection c = ConnectionManager.getConnection(); PreparedStatement ps = c.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
@@ -70,6 +76,7 @@ public class CrimeReportDao {
                 r.setBlurredAddress(rs.getString("blurred_address"));
                 double lat = rs.getDouble("blurred_latitude"); r.setBlurredLatitude(rs.wasNull() ? null : lat);
                 double lon = rs.getDouble("blurred_longitude"); r.setBlurredLongitude(rs.wasNull() ? null : lon);
+                r.setOffenseType(rs.getString("offense_types_agg"));
                 out.add(r);
             }
         }
@@ -160,14 +167,19 @@ public class CrimeReportDao {
         Double maxLon = lon + lonDelta;
 
         StringBuilder sql = new StringBuilder(
-            "SELECT report_number, report_datetime, precinct, sector, beat, mcpp_neighborhood, blurred_address, blurred_latitude, blurred_longitude " +
-            "FROM crime_reports WHERE blurred_latitude IS NOT NULL AND blurred_longitude IS NOT NULL " +
-            "AND blurred_latitude BETWEEN ? AND ? AND blurred_longitude BETWEEN ? AND ?"
+            "SELECT cr.report_number, cr.report_datetime, cr.precinct, cr.sector, cr.beat, cr.mcpp_neighborhood, cr.blurred_address, cr.blurred_latitude, cr.blurred_longitude, " +
+            "GROUP_CONCAT(DISTINCT ot.offense_parent_group SEPARATOR ', ') as offense_types_agg " +
+            "FROM crime_reports cr " +
+            "LEFT JOIN report_offenses ro ON cr.report_number = ro.report_number " +
+            "LEFT JOIN offense_types ot ON ro.offense_code = ot.offense_code " +
+            "WHERE cr.blurred_latitude IS NOT NULL AND cr.blurred_longitude IS NOT NULL " +
+            "AND cr.blurred_latitude BETWEEN ? AND ? AND cr.blurred_longitude BETWEEN ? AND ?"
         );
         if (daysBack != null && daysBack > 0) {
-            sql.append(" AND report_datetime >= DATE_SUB(CURRENT_TIMESTAMP(), INTERVAL ? DAY)");
+            sql.append(" AND cr.report_datetime >= DATE_SUB(CURRENT_TIMESTAMP(), INTERVAL ? DAY)");
         }
-        sql.append(" ORDER BY report_datetime DESC");
+        sql.append(" GROUP BY cr.report_number, cr.report_datetime, cr.precinct, cr.sector, cr.beat, cr.mcpp_neighborhood, cr.blurred_address, cr.blurred_latitude, cr.blurred_longitude ");
+        sql.append(" ORDER BY cr.report_datetime DESC");
 
         List<CrimeReport> pre = new ArrayList<>();
         try (Connection c = ConnectionManager.getConnection(); PreparedStatement ps = c.prepareStatement(sql.toString())) {
@@ -191,6 +203,7 @@ public class CrimeReportDao {
                     r.setBlurredAddress(rs.getString("blurred_address"));
                     double rlat = rs.getDouble("blurred_latitude"); r.setBlurredLatitude(rs.wasNull() ? null : rlat);
                     double rlon = rs.getDouble("blurred_longitude"); r.setBlurredLongitude(rs.wasNull() ? null : rlon);
+                    r.setOffenseType(rs.getString("offense_types_agg"));
                     pre.add(r);
                 }
             }
