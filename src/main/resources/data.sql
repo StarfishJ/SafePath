@@ -1,12 +1,12 @@
 -- Sample intersections
-INSERT INTO intersections (intkey, name, direction, gis_x, gis_y)
+INSERT IGNORE INTO intersections (intkey, name, direction, gis_x, gis_y)
 VALUES
     ('INT001', '1ST AVE & PINE', 'N', 47.6097, -122.3415),
     ('INT002', '1ST AVE & UNION', 'N', 47.6084, -122.3397),
     ('INT003', '3RD AVE & PIKE', 'N', 47.6102, -122.3385);
 
 -- Sample street segments
-INSERT INTO street_segments (
+INSERT IGNORE INTO street_segments (
     unitid,
     onstreet,
     speedlimit,
@@ -29,7 +29,7 @@ VALUES
     ('SEG003', 'UNION ST', 20, 2, 'OPEN', 110, 11, 1.2, 'CITY', 'N', 'TWO WAY', -122.3380, 47.6087, 'INT002', 'INT003');
 
 -- Sample risk scores (seeded for H2 demos)
-INSERT INTO street_segment_risk (
+INSERT IGNORE INTO street_segment_risk (
     unitid,
     cluster_id,
     risk_label,
@@ -47,14 +47,14 @@ VALUES
     ('SEG003', 0, 'LOW', 0.10, 0.02, 0.10, 2, 'kmeans_c1_v1', '2 incidents in 90d, night 10%, trend x0.75', CURRENT_TIMESTAMP());
 
 -- Insert three data into users
-INSERT INTO users (email, password_hash)
+INSERT IGNORE INTO users (email, password_hash)
 VALUES
     ('admin@safepath.com', 'hash_admin123'),
     ('alice@gmail.com', 'hash_alice123'),
     ('bob@gmail.com', 'hash_bob123');
 
 -- Insert three data into user_alerts
-INSERT INTO user_alerts (user_id, radius_m, center_lat, center_lon, crime_type_filter)
+INSERT IGNORE INTO user_alerts (user_id, radius_m, center_lat, center_lon, crime_type_filter)
 VALUES
     (1, 1000, 47.6062, -122.3321, 'ASSAULT'),
     (2, 500, 47.6205, -122.3493, 'BURGLARY'),

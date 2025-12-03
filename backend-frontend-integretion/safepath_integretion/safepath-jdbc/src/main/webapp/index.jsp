@@ -24,9 +24,32 @@
         <div class="sidebar">
 
             <div class="filters">
-                <button>distance</button>
-                <button>type</button>
-                <button>time</button>
+                <button id="filter-type-btn" class="filter-btn">Type</button>
+                <button id="filter-time-btn" class="filter-btn">Time</button>
+                <button id="clear-filters-btn" class="filter-btn">Clear</button>
+            </div>
+            
+            <!-- Filter panels (hidden by default) -->
+            <div id="filter-type-panel" class="filter-panel" style="display: none;">
+                <h4>Filter by Crime Type</h4>
+                <div id="crime-type-checkboxes" class="checkbox-group">
+                    <!-- Will be populated dynamically -->
+                </div>
+            </div>
+            
+            <div id="filter-time-panel" class="filter-panel" style="display: none;">
+                <h4>Filter by Time Range</h4>
+                <div class="time-buttons">
+                    <button class="time-btn" onclick="setTimeRangeHours(24)">Last 24h</button>
+                    <button class="time-btn" onclick="setTimeRange(7)">Last 7 days</button>
+                    <button class="time-btn" onclick="setTimeRange(30)">Last 30 days</button>
+                    <button class="time-btn" onclick="setTimeRange(90)">Last 90 days</button>
+                </div>
+                <div class="custom-time">
+                    <label>Custom Range:</label>
+                    <input type="datetime-local" id="time-start" onchange="applyCustomTimeFilter()" />
+                    <input type="datetime-local" id="time-end" onchange="applyCustomTimeFilter()" />
+                </div>
             </div>
 
             <input type="text" class="search-destination" placeholder="where you want to go ......">
@@ -53,13 +76,13 @@
     </body>
 
 
-    <!-- 先加载 map.js 和 crime.js -->
+    <!-- load map.js and crime.js first -->
     <script type="module" src="${pageContext.request.contextPath}/js/map.js"></script>
     <script type="module" src="${pageContext.request.contextPath}/js/crime.js"></script>
 
-    <!-- Google Map 加载，手动初始化以确保模块已加载 -->
+    <!-- Google Map load, manually initialize to ensure modules are loaded -->
     <script>
-        // 等待模块和 Google Maps API 都加载完成后初始化地图
+        // wait for modules and Google Maps API to be loaded before initializing the map
         let mapsApiLoaded = false;
         let modulesLoaded = false;
         
@@ -70,10 +93,10 @@
             }
         }
         
-        // 加载 Google Maps API
+        // load Google Maps API
         function loadGoogleMaps() {
             const script = document.createElement('script');
-            script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyB1FRS7vri1nRofZD5tFaXlVCwhcn2AvkY&libraries=places';
+            script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyB1FRS7vri1nRofZD5tFaXlVCwhcn2AvkY&libraries=places&language=en';
             script.async = true;
             script.defer = true;
             script.onload = function() {
@@ -87,27 +110,47 @@
             document.head.appendChild(script);
         }
         
-        // 监听模块加载完成（通过检查 window.initMap 是否存在）
+        // listen for modules loaded (by checking if window.initMap exists)
         function checkModulesLoaded() {
             if (window.initMap && typeof window.initMap === 'function') {
                 console.log('Modules loaded');
                 modulesLoaded = true;
                 tryInitMap();
             } else {
-                // 如果还没加载完，继续等待
+                // if not loaded yet, continue waiting
                 setTimeout(checkModulesLoaded, 50);
             }
         }
         
-        // 开始检查模块加载状态
+        // start checking module loading status
         checkModulesLoaded();
         
-        // DOM 加载完成后加载 Google Maps
+        // load Google Maps after DOM loaded
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', loadGoogleMaps);
         } else {
             loadGoogleMaps();
         }
+        
+        // Expose filter functions globally for inline onclick handlers
+        window.applyTypeFilter = async function() {
+            const module = await import('./js/crime.js');
+            module.applyTypeFilter();
+        };
+        
+        window.setTimeRange = async function(days) {
+            const module = await import('./js/crime.js');
+            module.setTimeRange(days);
+        };
+        window.setTimeRangeHours = async function(hours) {
+            const module = await import('./js/crime.js');
+            module.setTimeRangeHours(hours);
+        };
+        
+        window.applyCustomTimeFilter = async function() {
+            const module = await import('./js/crime.js');
+            module.applyCustomTimeFilter();
+        };
     </script>
 
 </html>
