@@ -1,40 +1,54 @@
 #!/bin/bash
 
-# 设置 Java 环境
+#!/**
+# This script is used to start the SafePath JDBC application.
+# It checks the Java and Maven versions, and starts the application using Jetty.
+# It also prints the Java and Maven versions, the port number, and the URL to access the application.
+#
+# Usage:
+#   ./run.sh
+#
+# This script will start the application using Jetty.
+# It will also print the Java and Maven versions, the port number, and the URL to access the application.
+#
+# The application will be available at http://localhost:9090
+#*/
+
+# set Java environment
 export JAVA_HOME=/opt/homebrew/Cellar/openjdk@21/21.0.7/libexec/openjdk.jdk/Contents/Home
 
-# 检查 Java
+# check Java
 if [ ! -d "$JAVA_HOME" ]; then
-    echo "❌ Java 21 未找到，尝试自动查找..."
+    echo "❌ Java 21 not found, trying to find automatically..."
     JAVA_HOME=$(/usr/libexec/java_home -v 21 2>/dev/null)
     if [ -z "$JAVA_HOME" ]; then
-        echo "❌ 请先安装 Java 21"
+        echo "❌ Please install Java 21 first"
         exit 1
     fi
-    echo "✅ 找到 Java: $JAVA_HOME"
+    echo "✅ Found Java: $JAVA_HOME"
 fi
 
-# 检查 Maven
+# check Maven
 if ! command -v mvn &> /dev/null; then
-    echo "❌ Maven 未找到，请先安装 Maven"
+    echo "❌ Maven not found, please install Maven first"
     exit 1
 fi
 
 echo "=========================================="
-echo "🚀 启动 SafePath JDBC 应用"
+echo "🚀 Start SafePath JDBC application"
 echo "=========================================="
 echo "Java Home: $JAVA_HOME"
 echo "Maven: $(mvn -version | head -1)"
-echo "端口: 9090"
+echo "Port: 9090"
 echo ""
-echo "启动后访问:"
-echo "  - 主页: http://localhost:9090"
+echo "After starting, access:"
+echo "  - Home: http://localhost:9090"
 echo "  - API:  http://localhost:9090/crime-report?action=list"
 echo ""
-echo "按 Ctrl+C 停止服务器"
+echo "Press Ctrl+C to stop the server"
 echo "=========================================="
 echo ""
 
-# 启动 Jetty
+# start Jetty
 mvn jetty:run
 

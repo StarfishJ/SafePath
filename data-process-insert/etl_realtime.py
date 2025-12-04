@@ -3,9 +3,25 @@ import pandas as pd
 import mysql.connector
 from datetime import datetime
 import time
-from dotenv import load_dotenv
 
-load_dotenv()
+# use the unified config loader to read the database configuration
+# from the db.properties file
+try:
+    from config_loader import get_db_config
+    db_config = get_db_config()
+    DB_HOST = db_config.get("DB_HOST", "localhost")
+    DB_USER = db_config.get("DB_USER", "root")
+    DB_PASSWORD = db_config.get("DB_PASSWORD", "")
+    DB_NAME = db_config.get("DB_NAME", "safepath")
+except ImportError:
+    # fallback to using environment variables if the config_loader
+    # is not available
+    from dotenv import load_dotenv
+    load_dotenv()
+    DB_HOST = os.getenv("DB_HOST", "localhost")
+    DB_USER = os.getenv("DB_USER", "root")
+    DB_PASSWORD = os.getenv("DB_PASSWORD", "")
+    DB_NAME = os.getenv("DB_NAME", "safepath")
 
 start_time = time.time()
 
@@ -13,10 +29,10 @@ start_time = time.time()
 # 1️⃣ Connecting to MySQL
 # =======================
 conn = mysql.connector.connect(
-    host=os.getenv("DB_HOST", "localhost"),
-    user=os.getenv("DB_USER", "root"),
-    password=os.getenv("DB_PASSWORD", ""),
-    database=os.getenv("DB_NAME", "safepath"),
+    host=DB_HOST,
+    user=DB_USER,
+    password=DB_PASSWORD,
+    database=DB_NAME,
 )
 cursor = conn.cursor()
 
@@ -34,7 +50,8 @@ if row:
     source_id = row[0]
 else:
     cursor.execute(
-        "INSERT INTO sources (source_name, url, refresh_interval) VALUES (%s, %s, %s)",
+        "INSERT INTO sources (source_name, url, refresh_interval) \
+        VALUES (%s, %s, %s)",
         (source_name, source_url, refresh_interval),
     )
     conn.commit()
@@ -45,7 +62,8 @@ print(f"Source ID = {source_id}")
 # 3️⃣ Create ETL_Run
 # =======================
 cursor.execute(
-    "INSERT INTO etl_runs (source_id, run_time, record_count) VALUES (%s, %s, 0)",
+    "INSERT INTO etl_runs (source_id, run_time, record_count) \
+        VALUES (%s, %s, 0)",
     (source_id, datetime.now()),
 )
 conn.commit()
@@ -81,7 +99,8 @@ df = df.rename(columns=rename_map)
 # =======================
 if "event_datetime" not in df.columns:
     raise ValueError(
-        f"The event_datetime column does not exist, the current column name is: {list(df.columns)}"
+        f"The event_datetime column does not exist, the current column name\
+        is: {list(df.columns)}"
     )
 
 df["event_datetime"] = pd.to_datetime(

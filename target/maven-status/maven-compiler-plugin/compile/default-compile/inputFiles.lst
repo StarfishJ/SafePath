@@ -1,51 +1,56 @@
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/SafePathApplication.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/config/H2DataLoader.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/controller/AppUserController.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/controller/CrimeReportController.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/controller/CustomErrorController.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/controller/HomeController.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/controller/RouteRiskController.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/controller/SafetyRecommendationController.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/controller/UserAlertController.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/dto/AppUserDto.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/dto/CreateCrimeReportRequest.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/dto/CreateUserAlertRequest.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/dto/CreateUserRequest.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/dto/CrimeReportDto.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/dto/GoogleRouteRequest.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/dto/RouteRiskResponse.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/dto/StreetSegmentRiskDto.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/dto/UserAlertDto.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/model/AppUser.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/model/CrimeReport.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/model/EtlRun.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/model/Intersection.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/model/OffenseType.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/model/RealtimeIncident.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/model/ReportOffense.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/model/Source.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/model/StreetSegment.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/model/StreetSegmentRisk.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/model/UserAlert.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/repository/AppUserRepository.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/repository/CrimeReportRepository.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/repository/EtlRunRepository.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/repository/IntersectionRepository.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/repository/OffenseTypeRepository.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/repository/RealtimeIncidentRepository.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/repository/ReportOffenseRepository.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/repository/SourceRepository.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/repository/StreetSegmentRepository.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/repository/StreetSegmentRiskRepository.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/repository/UserAlertRepository.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/service/AppUserService.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/service/CrimeReportService.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/service/RouteRiskService.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/service/SafetyRecommendationService.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/service/UserAlertService.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/service/impl/AppUserServiceImpl.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/service/impl/CrimeReportServiceImpl.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/service/impl/RouteRiskServiceImpl.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/service/impl/SafetyRecommendationServiceImpl.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/service/impl/UserAlertServiceImpl.java
-/Users/mm/Desktop/SafePath/src/main/java/com/safepath/util/PolylineDecoder.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\config\H2DataLoader.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\config\RiskScoreAutoUpdateListener.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\controller\AppUserController.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\controller\CrimeReportController.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\controller\CustomErrorController.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\controller\HomeController.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\controller\RiskScoreUpdateController.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\controller\RouteRiskController.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\controller\SafetyRecommendationController.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\controller\UserAlertController.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\dto\AppUserDto.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\dto\CreateCrimeReportRequest.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\dto\CreateUserAlertRequest.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\dto\CreateUserRequest.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\dto\CrimeReportDto.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\dto\GoogleRouteRequest.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\dto\RouteRiskResponse.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\dto\StreetSegmentRiskDto.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\dto\TaskStatusResponse.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\dto\UserAlertDto.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\model\AppUser.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\model\CrimeReport.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\model\EtlRun.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\model\Intersection.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\model\OffenseType.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\model\RealtimeIncident.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\model\ReportOffense.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\model\Source.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\model\StreetSegment.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\model\StreetSegmentRisk.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\model\UserAlert.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\repository\AppUserRepository.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\repository\CrimeReportRepository.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\repository\EtlRunRepository.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\repository\IntersectionRepository.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\repository\OffenseTypeRepository.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\repository\RealtimeIncidentRepository.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\repository\ReportOffenseRepository.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\repository\SourceRepository.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\repository\StreetSegmentRepository.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\repository\StreetSegmentRiskRepository.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\repository\UserAlertRepository.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\SafePathApplication.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\service\AppUserService.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\service\CrimeReportService.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\service\impl\AppUserServiceImpl.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\service\impl\CrimeReportServiceImpl.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\service\impl\RiskScoreUpdateServiceImpl.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\service\impl\RouteRiskServiceImpl.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\service\impl\SafetyRecommendationServiceImpl.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\service\impl\UserAlertServiceImpl.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\service\RiskScoreUpdateService.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\service\RouteRiskService.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\service\SafetyRecommendationService.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\service\UserAlertService.java
+D:\safePath + ML\SafePath\src\main\java\com\safepath\util\PolylineDecoder.java

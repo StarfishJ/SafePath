@@ -2,19 +2,35 @@ import os
 import pandas as pd
 import mysql.connector
 import time
-from dotenv import load_dotenv
 
-load_dotenv()
+# use the unified config loader to read the database configuration
+# from the db.properties file
+try:
+    from config_loader import get_db_config
+    db_config = get_db_config()
+    DB_HOST = db_config.get("DB_HOST", "localhost")
+    DB_USER = db_config.get("DB_USER", "root")
+    DB_PASSWORD = db_config.get("DB_PASSWORD", "")
+    DB_NAME = db_config.get("DB_NAME", "safepath")
+except ImportError:
+    # fallback to using environment variables if the config_loader
+    # is not available
+    from dotenv import load_dotenv
+    load_dotenv()
+    DB_HOST = os.getenv("DB_HOST", "localhost")
+    DB_USER = os.getenv("DB_USER", "root")
+    DB_PASSWORD = os.getenv("DB_PASSWORD", "")
+    DB_NAME = os.getenv("DB_NAME", "safepath")
 
 start = time.time()
 print("Loading Seattle streets data...")
 
 # 1️⃣ Connecting to MySQL
 conn = mysql.connector.connect(
-    host=os.getenv("DB_HOST", "localhost"),
-    user=os.getenv("DB_USER", "root"),
-    password=os.getenv("DB_PASSWORD", ""),
-    database=os.getenv("DB_NAME", "safepath"),
+    host=DB_HOST,
+    user=DB_USER,
+    password=DB_PASSWORD,
+    database=DB_NAME,
 )
 cursor = conn.cursor()
 

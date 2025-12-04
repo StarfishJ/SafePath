@@ -2,9 +2,14 @@ package com.safepath.dto;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * Request DTO matching Google Directions API response structure.
  * Frontend sends this directly after fetching routes from Google.
+ * 
+ * Note: Google Directions Service returns camelCase field names,
+ * but we also support snake_case for compatibility.
  */
 public class GoogleRouteRequest {
 
@@ -58,8 +63,13 @@ public class GoogleRouteRequest {
         private String instructions;
         private Distance distance;
         private Duration duration;
+        
+        @JsonProperty(value = "start_location", required = false)
         private LatLng startLocation;
+        
+        @JsonProperty(value = "end_location", required = false)
         private LatLng endLocation;
+        
         private Polyline polyline;
 
         public String getInstructions() {

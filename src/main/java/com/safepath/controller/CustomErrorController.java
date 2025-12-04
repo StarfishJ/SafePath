@@ -1,5 +1,8 @@
 package com.safepath.controller;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.springframework.boot.web.servlet.error.ErrorController;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -8,8 +11,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
-import java.util.HashMap;
-import java.util.Map;
 
 @RestController
 public class CustomErrorController implements ErrorController {
@@ -35,7 +36,7 @@ public class CustomErrorController implements ErrorController {
         errorResponse.put("path", path != null ? path.toString() : request.getRequestURI());
         errorResponse.put("timestamp", java.time.LocalDateTime.now().toString());
 
-        // 提供有用的提示信息
+        // provide useful information
         if (status != null && Integer.parseInt(status.toString()) == 404) {
             errorResponse.put("suggestion", "The requested endpoint does not exist. Available endpoints: /api/users, /api/crime-reports, /api/user-alerts");
             errorResponse.put("documentation", "/api");
